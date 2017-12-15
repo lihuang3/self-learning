@@ -116,6 +116,7 @@ with tf.device("/cpu:0"):
 
 with tf.Session() as sess:
   sess.run(tf.global_variables_initializer())
+  # https://www.tensorflow.org/api_docs/python/tf/train/Coordinator
   coord = tf.train.Coordinator()
 
   # Load a previous checkpoint if it exists
@@ -128,7 +129,10 @@ with tf.Session() as sess:
   worker_threads = []
   for worker in workers:
     worker_fn = lambda worker=worker: worker.run(sess, coord, FLAGS.t_max)
+
     t = threading.Thread(target=worker_fn)
+    # multithreading example:https://pymotw.com/2/threading/
+
     t.start()
     worker_threads.append(t)
 
