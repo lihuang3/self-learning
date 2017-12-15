@@ -1,5 +1,5 @@
-#### This repo inherited from dennybritz Github reinforcement-learning
-#### Original code: https://github.com/dennybritz/reinforcement-learning.git
+#### This repo is inherited from dennybritz Github reinforcement-learning
+#### Original repo: https://github.com/dennybritz/reinforcement-learning.git
 
 ## Implementation of A3C (Asynchronous Advantage Actor-Critic)
 
