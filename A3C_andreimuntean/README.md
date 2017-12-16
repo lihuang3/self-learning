@@ -1,3 +1,6 @@
+### This repo inherits andreimuntean A3C repo
+### Original code at https://github.com/andreimuntean/A3C
+
 # A3C
 Deep reinforcement learning using an asynchronous advantage actor-critic (A3C) model written in [TensorFlow](https://www.tensorflow.org/). 
 
