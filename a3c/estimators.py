@@ -83,6 +83,7 @@ class PolicyEstimator():
       gather_indices = tf.range(batch_size) * tf.shape(self.probs)[1] + self.actions
       self.picked_action_probs = tf.gather(tf.reshape(self.probs, [-1]), gather_indices)
 
+      #>>> Is this cross entropy?
       self.losses = - (tf.log(self.picked_action_probs) * self.targets + 0.01 * self.entropy)
       self.loss = tf.reduce_sum(self.losses, name="loss")
 
@@ -91,8 +92,10 @@ class PolicyEstimator():
       tf.summary.histogram(self.entropy.op.name, self.entropy)
 
       if trainable:
+        #>>> Todo: why do you extract the gradients but not train it directly using minimize?
         # self.optimizer = tf.train.AdamOptimizer(1e-4)
         self.optimizer = tf.train.RMSPropOptimizer(0.00025, 0.99, 0.0, 1e-6)
+        # Get gradients and variables from the optimizer
         self.grads_and_vars = self.optimizer.compute_gradients(self.loss)
         self.grads_and_vars = [[grad, var] for grad, var in self.grads_and_vars if grad is not None]
         self.train_op = self.optimizer.apply_gradients(self.grads_and_vars,
@@ -101,6 +104,7 @@ class PolicyEstimator():
     # Merge summaries from this network and the shared network (but not the value net)
     var_scope_name = tf.get_variable_scope().name
     summary_ops = tf.get_collection(tf.GraphKeys.SUMMARIES)
+    #>>> Todo: why is'summaries' defined twice?
     sumaries = [s for s in summary_ops if "policy_net" in s.name or "shared" in s.name]
     sumaries = [s for s in summary_ops if var_scope_name in s.name]
     self.summaries = tf.summary.merge(sumaries)

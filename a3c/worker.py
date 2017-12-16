@@ -35,7 +35,7 @@ def make_copy_params_op(v1_list, v2_list):
     update_ops.append(op)
 
   return update_ops
-
+#>>> ToDo
 def make_train_op(local_estimator, global_estimator):
   """
   Creates an op that applies local estimator gradients
@@ -126,6 +126,11 @@ class Worker(object):
     return preds["logits"][0]
 
   def run_n_steps(self, n, sess):
+    """
+      Here the worker return transition tuple, local steps, and global steps every t_max (=5) actions.
+      Then the global network gets update
+
+    """
     transitions = []
     for _ in range(n):
       # Take a step
@@ -172,7 +177,12 @@ class Worker(object):
     actions = []
 
     for transition in transitions[::-1]:
+      # The [::-1] slice reverses the list in the for loop
+      # (but won't actually modify your list "permanently").
+
       reward = transition.reward + self.discount_factor * reward
+
+      #>>> Policy target or target diff?
       policy_target = (reward - self._value_net_predict(transition.state, sess))
       # Accumulate updates
       states.append(transition.state)
@@ -180,6 +190,7 @@ class Worker(object):
       policy_targets.append(policy_target)
       value_targets.append(reward)
 
+    # batch size = 5
     feed_dict = {
       self.policy_net.states: np.array(states),
       self.policy_net.targets: policy_targets,
