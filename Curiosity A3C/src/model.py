@@ -179,11 +179,16 @@ class LSTMPolicy(object):
         else:
             x = universeHead(x)
 
+        #>>> Todo: what does this mean?
         # introduce a "fake" batch dimension of 1 to do LSTM over time dim
         x = tf.expand_dims(x, [0])
-        lstm = rnn.rnn_cell.BasicLSTMCell(size, state_is_tuple=True)
+        lstm = rnn.rnn_cell.BasicLSTMCell(num_units = size, forget_bias = 1.0, state_is_tuple=True)
         self.state_size = lstm.state_size
         step_size = tf.shape(self.x)[:1]
+        #>>> Note: state: if self.state_size is an integer, this should be a 2-D Tensor
+        # with shape [batch_size x self.state_size]. Otherwise, if self.state_size is
+        # a tuple of integers, this should be a tuple with shapes [batch_size x s] for s in self.state_size.
+
 
         c_init = np.zeros((1, lstm.state_size.c), np.float32)
         h_init = np.zeros((1, lstm.state_size.h), np.float32)
@@ -191,12 +196,14 @@ class LSTMPolicy(object):
         c_in = tf.placeholder(tf.float32, [1, lstm.state_size.c], name='c_in')
         h_in = tf.placeholder(tf.float32, [1, lstm.state_size.h], name='h_in')
         self.state_in = [c_in, h_in]
-
+        #>>> Todo: what's the diff of self.state_in and state_in
         state_in = rnn.rnn_cell.LSTMStateTuple(c_in, h_in)
         lstm_outputs, lstm_state = tf.nn.dynamic_rnn(
             lstm, x, initial_state=state_in, sequence_length=step_size,
             time_major=False)
         lstm_c, lstm_h = lstm_state
+
+        # size --> RNN feature space
         x = tf.reshape(lstm_outputs, [-1, size])
         self.vf = tf.reshape(linear(x, 1, "value", normalized_columns_initializer(1.0)), [-1])
         self.state_out = [lstm_c[:1, :], lstm_h[:1, :]]
