@@ -14,7 +14,9 @@ import tensorflow as tf
 from tensorflow.contrib import rnn
 import random
 import collections
-import time
+import time, os
+os.environ['TF_CPP_MIN_LOG_LEVEL']='2'
+
 
 start_time = time.time()
 def elapsed(sec):
@@ -36,11 +38,12 @@ training_file = 'belling_the_cat.txt'
 def read_data(fname):
     with open(fname) as f:
         content = f.readlines()
+    # str.strip([chars]) returns a copy of the string with the leading and trailing characters removed.
     content = [x.strip() for x in content]
     content = [content[i].split() for i in range(len(content))]
     content = np.array(content)
     content = np.reshape(content, [-1, ])
-    return content
+    return content.ravel()
 
 training_data = read_data(training_file)
 print("Loaded training data...")
@@ -58,7 +61,7 @@ vocab_size = len(dictionary)
 
 # Parameters
 learning_rate = 0.001
-training_iters = 50000
+training_iters = 10
 display_step = 1000
 n_input = 3
 
@@ -111,20 +114,40 @@ optimizer = tf.train.RMSPropOptimizer(learning_rate=learning_rate).minimize(cost
 # Model evaluation
 correct_pred = tf.equal(tf.argmax(pred,1), tf.argmax(y,1))
 accuracy = tf.reduce_mean(tf.cast(correct_pred, tf.float32))
+global_step_tensor = tf.Variable(0, name="global_step", trainable=False)
 
 # Initializing the variables
 init = tf.global_variables_initializer()
 
+
+# Create experiment directory
+experiment_dir = os.path.abspath('./experiments/RNN_LSTMs')
+
+checkpoint_dir = os.path.join(experiment_dir, 'checkpoint')
+if not os.path.exists(checkpoint_dir):
+    os.makedirs(checkpoint_dir)
+
+checkpoint_path = os.path.join(checkpoint_dir, 'model')
+
+# Create a saver object and checkpoint directory
+saver = tf.train.Saver()
+# Load the latest checkpoint
+latest_checkpoint = tf.train.latest_checkpoint(checkpoint_dir)
+
 # Launch the graph
-with tf.Session() as session:
-    session.run(init)
+with tf.Session() as sess:
+    sess.run(init)
     step = 0
     offset = random.randint(0,n_input+1)
     end_offset = n_input + 1
     acc_total = 0
     loss_total = 0
 
-    writer.add_graph(session.graph)
+    if latest_checkpoint:
+        print('Loading the latest checkpoint from ... \n {}'.format(latest_checkpoint))
+        saver.restore(sess, latest_checkpoint)
+
+    writer.add_graph(sess.graph)
 
     while step < training_iters:
         # Generate a minibatch. Add some randomness on selection process.
@@ -138,7 +161,7 @@ with tf.Session() as session:
         symbols_out_onehot[dictionary[str(training_data[offset+n_input])]] = 1.0
         symbols_out_onehot = np.reshape(symbols_out_onehot,[1,-1])
 
-        _, acc, loss, onehot_pred = session.run([optimizer, accuracy, cost, pred], \
+        _, acc, loss, onehot_pred = sess.run([optimizer, accuracy, cost, pred], \
                                                 feed_dict={x: symbols_in_keys, y: symbols_out_onehot})
         loss_total += loss
         acc_total += acc
@@ -152,8 +175,20 @@ with tf.Session() as session:
             symbols_out = training_data[offset + n_input]
             symbols_out_pred = reverse_dictionary[int(tf.argmax(onehot_pred, 1).eval())]
             print("%s - [%s] vs [%s]" % (symbols_in,symbols_out,symbols_out_pred))
+
+            saver.save(  # Or tf.get_default_session()
+                sess,
+                checkpoint_path,
+                global_step=tf.train.global_step(sess, global_step_tensor))
+
         step += 1
         offset += (n_input+1)
+
+    saver.save(  # Or tf.get_default_session()
+        sess,
+        checkpoint_path,
+        global_step=tf.train.global_step(sess, global_step_tensor))
+
     print("Optimization Finished!")
     print("Elapsed time: ", elapsed(time.time() - start_time))
     print("Run on command line.")
@@ -168,9 +203,9 @@ with tf.Session() as session:
             continue
         try:
             symbols_in_keys = [dictionary[str(words[i])] for i in range(len(words))]
-            for i in range(32):
+            for i in range(100):
                 keys = np.reshape(np.array(symbols_in_keys), [-1, n_input, 1])
-                onehot_pred = session.run(pred, feed_dict={x: keys})
+                onehot_pred = sess.run(pred, feed_dict={x: keys})
                 onehot_pred_index = int(tf.argmax(onehot_pred, 1).eval())
                 sentence = "%s %s" % (sentence,reverse_dictionary[onehot_pred_index])
                 symbols_in_keys = symbols_in_keys[1:]
