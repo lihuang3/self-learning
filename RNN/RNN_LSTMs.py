@@ -33,7 +33,7 @@ logs_path = '/tmp/tensorflow/rnn_words'
 writer = tf.summary.FileWriter(logs_path)
 
 # Text file containing words for training
-training_file = 'belling_the_cat.txt'
+training_file = 'facebook.txt'
 
 def read_data(fname):
     with open(fname) as f:
@@ -61,9 +61,9 @@ vocab_size = len(dictionary)
 
 # Parameters
 learning_rate = 0.001
-training_iters = 10
+training_iters = 50000
 display_step = 1000
-n_input = 3
+n_input = 5
 
 # number of units in RNN cell
 n_hidden = 512
@@ -91,7 +91,7 @@ def RNN(x, weights, biases):
 
     # 2-layer LSTM, each layer has n_hidden units.
     # Average Accuracy= 95.20% at 50k iter
-    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden)])
+    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden)])
 
     # 1-layer LSTM with n_hidden units but with lower accuracy.
     # Average Accuracy= 90.60% 50k iter
