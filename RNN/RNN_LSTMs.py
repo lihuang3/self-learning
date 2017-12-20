@@ -61,7 +61,7 @@ vocab_size = len(dictionary)
 
 # Parameters
 learning_rate = 0.001
-training_iters = 50000
+training_iters = 1000
 display_step = 1000
 n_input = 5
 
@@ -91,7 +91,7 @@ def RNN(x, weights, biases):
 
     # 2-layer LSTM, each layer has n_hidden units.
     # Average Accuracy= 95.20% at 50k iter
-    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden)])
+    rnn_cell = rnn.MultiRNNCell([rnn.BasicLSTMCell(n_hidden),rnn.BasicLSTMCell(n_hidden)])
 
     # 1-layer LSTM with n_hidden units but with lower accuracy.
     # Average Accuracy= 90.60% 50k iter
