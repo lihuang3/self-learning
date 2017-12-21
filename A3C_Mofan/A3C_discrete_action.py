@@ -56,18 +56,24 @@ class ACNet(object):
 
                 td = tf.subtract(self.v_target, self.v, name='TD_error')
                 with tf.name_scope('c_loss'):
+                    # Value loss
                     self.c_loss = tf.reduce_mean(tf.square(td))
 
                 with tf.name_scope('a_loss'):
+                    # Policy loss: log(pi(s))*A(s)+beta*H(s)
                     log_prob = tf.reduce_sum(tf.log(self.a_prob) * tf.one_hot(self.a_his, N_A, dtype=tf.float32), axis=1, keep_dims=True)
                     exp_v = log_prob * td
                     entropy = -tf.reduce_sum(self.a_prob * tf.log(self.a_prob + 1e-5),
                                              axis=1, keep_dims=True)  # encourage exploration
                     self.exp_v = ENTROPY_BETA * entropy + exp_v
+
+                    #>>> Todo: why negative
                     self.a_loss = tf.reduce_mean(-self.exp_v)
 
                 with tf.name_scope('local_grad'):
+                    # Policy fcn grad
                     self.a_grads = tf.gradients(self.a_loss, self.a_params)
+                    # Value fcn grad
                     self.c_grads = tf.gradients(self.c_loss, self.c_params)
 
             with tf.name_scope('sync'):
