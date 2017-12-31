@@ -55,6 +55,10 @@ def run(args, server):
         summary_writer = tf.train.SummaryWriter(logdir + "_%d" % args.task)
 
     logger.info("Events directory: %s_%s", logdir, args.task)
+
+    # << "tf.train.Supervisor" automatically creates a checkpoint saver and load previous checkpts (if there is any) and update the summary.
+    # So we don't have to create saver, load checkpts, or create summary writer by hand >>
+    # Code example: http://blog.csdn.net/u012436149/article/details/53341372
     sv = tf.train.Supervisor(is_chief=(args.task == 0),
                              logdir=logdir,
                              saver=saver,
@@ -110,12 +114,12 @@ def main(_):
     """
 Setting up Tensorflow for data parallel work
 """
-
+    # <<Command line inputs: the order does not matter>>
     parser = argparse.ArgumentParser(description=None)
     parser.add_argument('-v', '--verbose', action='count', dest='verbosity', default=0, help='Set verbosity.')
     parser.add_argument('--task', default=0, type=int, help='Task index')
     parser.add_argument('--job-name', default="worker", help='worker or ps')
-    parser.add_argument('--num-workers', default=1, type=int, help='Number of workers')
+    parser.add_argument('--num-workers', default=4, type=int, help='Number of workers')
     parser.add_argument('--log-dir', default="/tmp/pong", help='Log directory path')
     parser.add_argument('--env-id', default="PongDeterministic-v3", help='Environment id')
     parser.add_argument('-r', '--remotes', default=None,
@@ -128,6 +132,7 @@ Setting up Tensorflow for data parallel work
                         help="Visualise the gym environment by running env.render() between each timestep")
 
     args = parser.parse_args()
+    # << Apparently, args cannot tell the difference b/w "num-workers" and "num_workers" >>
     spec = cluster_spec(args.num_workers, 1)
     cluster = tf.train.ClusterSpec(spec).as_cluster_def()
 

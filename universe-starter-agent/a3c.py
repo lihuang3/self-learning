@@ -9,9 +9,11 @@ import threading
 import distutils.version
 use_tf12_api = distutils.version.LooseVersion(tf.VERSION) >= distutils.version.LooseVersion('0.12.0')
 
+#>>> Skipped
 def discount(x, gamma):
     return scipy.signal.lfilter([1], [1, -gamma], x[::-1], axis=0)[::-1]
 
+#>>> Skipped
 def process_rollout(rollout, gamma, lambda_=1.0):
     """
 given a rollout, compute its returns and the advantage
@@ -33,6 +35,7 @@ given a rollout, compute its returns and the advantage
 
 Batch = namedtuple("Batch", ["si", "a", "adv", "r", "terminal", "features"])
 
+#>>> Skipped
 class PartialRollout(object):
     """
 a piece of a complete rollout.  We run our agent, and process its experience
@@ -65,6 +68,7 @@ once it has processed enough steps.
         self.terminal = other.terminal
         self.features.extend(other.features)
 
+#>>> Skipped
 class RunnerThread(threading.Thread):
     """
 One of the key distinctions between a normal environment and a universe environment
@@ -102,14 +106,16 @@ that would constantly interact with the environment and tell it what to do.  Thi
             self.queue.put(next(rollout_provider), timeout=600.0)
 
 
-
+# Todo: Assign work to each thread
 def env_runner(env, policy, num_local_steps, summary_writer, render):
     """
 The logic of the thread runner.  In brief, it constantly keeps on running
 the policy, and as long as the rollout exceeds a certain length, the thread
 runner appends the policy to the queue.
 """
+
     last_state = env.reset()
+    # Policy:= LSTMPolicy
     last_features = policy.get_initial_features()
     length = 0
     rewards = 0
@@ -117,7 +123,8 @@ runner appends the policy to the queue.
     while True:
         terminal_end = False
         rollout = PartialRollout()
-
+        #<< Here num_local_steps refers to the interactions b/w agents and the env before the global net gets update
+        # It affects the learning robustness of the global net>>
         for _ in range(num_local_steps):
             fetched = policy.act(last_state, *last_features)
             action, value_, features = fetched[0], fetched[1], fetched[2:]
@@ -170,6 +177,7 @@ should be computed.
         self.env = env
         self.task = task
         worker_device = "/job:worker/task:{}/cpu:0".format(task)
+        #>>> Todo: ???
         with tf.device(tf.train.replica_device_setter(1, worker_device=worker_device)):
             with tf.variable_scope("global"):
                 self.network = LSTMPolicy(env.observation_space.shape, env.action_space.n)
@@ -208,7 +216,7 @@ should be computed.
             # smaller than 20 makes the algorithm more difficult to tune and to get to work.
             self.runner = RunnerThread(env, pi, 20, visualise)
 
-
+            #<< The derivative of self.loss w.r.t alist of variables >>
             grads = tf.gradients(self.loss, pi.var_list)
 
             if use_tf12_api:
@@ -228,17 +236,20 @@ should be computed.
                 tf.scalar_summary("model/grad_global_norm", tf.global_norm(grads))
                 tf.scalar_summary("model/var_global_norm", tf.global_norm(pi.var_list))
                 self.summary_op = tf.merge_all_summaries()
-
+            #<< Clipping gradients to avoid grad explosion http://blog.csdn.net/u013713117/article/details/56281715 >>
             grads, _ = tf.clip_by_global_norm(grads, 40.0)
 
             # copy weights from the parameter server to the local model
             self.sync = tf.group(*[v1.assign(v2) for v1, v2 in zip(pi.var_list, self.network.var_list)])
 
             grads_and_vars = list(zip(grads, self.network.var_list))
+            # Todo:???
             inc_step = self.global_step.assign_add(tf.shape(pi.x)[0])
 
             # each worker has a different set of adam optimizer parameters
             opt = tf.train.AdamOptimizer(1e-4)
+            # tf.group vs tf.tuple
+            # http://blog.csdn.net/u012436149/article/details/60780727
             self.train_op = tf.group(opt.apply_gradients(grads_and_vars), inc_step)
             self.summary_writer = None
             self.local_steps = 0

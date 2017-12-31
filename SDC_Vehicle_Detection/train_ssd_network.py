@@ -345,6 +345,7 @@ def _reshape_list(l, shape=None):
 def main(_):
     if not FLAGS.dataset_dir:
         raise ValueError('You must supply the dataset directory with --dataset_dir')
+        raise ValueError('You must supply the dataset directory with --dataset_dir')
     print('Training FLAGS:')
     pprint(FLAGS.__flags)
 
