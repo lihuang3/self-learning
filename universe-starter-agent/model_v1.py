@@ -14,7 +14,7 @@ def normalized_columns_initializer(std=1.0):
 def flatten(x):
     # >> ???
     # return tf.reshape(x, [-1, np.prod( x.get_shape().as_list()[1:] )])
-    return tf.contrib.layers.flatten(inputs=x)
+    return tf.layers.Flatten(inputs = x)
 
 def conv2d(x, num_filters, name, filter_size=(3, 3), stride=(1, 1), pad="SAME", dtype=tf.float32, collections=None):
     with tf.variable_scope(name):
@@ -35,7 +35,41 @@ def conv2d(x, num_filters, name, filter_size=(3, 3), stride=(1, 1), pad="SAME", 
                             collections=collections)
         b = tf.get_variable("b", [1, 1, 1, num_filters], initializer=tf.constant_initializer(0.0),
                             collections=collections)
-        return tf.nn.conv2d(x, w, stride_shape, pad) + b
+        # return tf.nn.conv2d(x, w, stride_shape, pad) + b
+        return tf.layers.conv2d(
+                                    inputs = x,
+                                    filters = num_filters,
+                                    kernel_size = filter_size,
+                                    strides= stride,
+                                    padding='same',
+                                    activation=None,
+                                    use_bias=True,
+                                    kernel_initializer=tf.random_normal_initializer(0.,0.3),
+                                    bias_initializer=tf.zeros_initializer(),
+                                    name=name,
+                                    reuse=None
+                                )
+
+def build_network(X, name):
+    with tf.variable_scope(name):
+        """
+        Builds a 3-layer network conv -> conv -> fc as described
+        in the A3C paper. This network is shared by both the policy and value net.
+        Args:
+          X: Inputs
+          add_summaries: If true, add layer summaries to Tensorboard.
+        Returns:
+          Final layer activations.
+        """
+        # Three convolutional layers
+        conv1 = tf.layers.conv2d(
+            inputs=X, filters=16, kernel_size=8, strides=4, activation_fn=tf.nn.relu, scope="conv1")
+        conv2 = tf.contrib.layers.conv2d(
+            inputs=conv1, filters=32, kernel_size=4, strides=2, activation_fn=tf.nn.relu, scope="conv2")
+
+        # Fully connected layer
+        fc1 = tf.layers.dense(inputs=tf.layers.Flatten(conv2), num_outputs=256, scope="fc1")
+    return fc1
 
 def linear(x, size, name, initializer=None, bias_init=0):
     w = tf.get_variable(name + "/w", [x.get_shape()[1], size], initializer=initializer)
@@ -54,7 +88,7 @@ class LSTMPolicy(object):
             x = tf.nn.elu(conv2d(x, 32, "l{}".format(i + 1), [3, 3], [2, 2]))
         # introduce a "fake" batch dimension of 1 after flatten so that we can do LSTM over time dim
         x = tf.expand_dims(flatten(x), [0])
-        # RNN feature space dimension (cell size)
+
         size = 256
         if use_tf100_api:
             lstm = rnn.BasicLSTMCell(size, state_is_tuple=True)
@@ -62,9 +96,8 @@ class LSTMPolicy(object):
             lstm = rnn.rnn_cell.BasicLSTMCell(size, state_is_tuple=True)
         self.state_size = lstm.state_size
         step_size = tf.shape(self.x)[:1]
-        # Cell state
+
         c_init = np.zeros((1, lstm.state_size.c), np.float32)
-        # Memory state or hidden state
         h_init = np.zeros((1, lstm.state_size.h), np.float32)
         self.state_init = [c_init, h_init]
         c_in = tf.placeholder(tf.float32, [1, lstm.state_size.c])
@@ -80,9 +113,7 @@ class LSTMPolicy(object):
             time_major=False)
         lstm_c, lstm_h = lstm_state
         x = tf.reshape(lstm_outputs, [-1, size])
-        # Logits layer or action layer directly from LSTMs
         self.logits = linear(x, ac_space, "action", normalized_columns_initializer(0.01))
-        # Value function
         self.vf = tf.reshape(linear(x, 1, "value", normalized_columns_initializer(1.0)), [-1])
         self.state_out = [lstm_c[:1, :], lstm_h[:1, :]]
         self.sample = categorical_sample(self.logits, ac_space)[0, :]

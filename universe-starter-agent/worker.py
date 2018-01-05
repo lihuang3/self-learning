@@ -119,7 +119,7 @@ Setting up Tensorflow for data parallel work
     parser.add_argument('-v', '--verbose', action='count', dest='verbosity', default=0, help='Set verbosity.')
     parser.add_argument('--task', default=0, type=int, help='Task index')
     parser.add_argument('--job-name', default="worker", help='worker or ps')
-    parser.add_argument('--num-workers', default=4, type=int, help='Number of workers')
+    parser.add_argument('--num-workers', default=1, type=int, help='Number of workers')
     parser.add_argument('--log-dir', default="/tmp/pong", help='Log directory path')
     parser.add_argument('--env-id', default="PongDeterministic-v3", help='Environment id')
     parser.add_argument('-r', '--remotes', default=None,
@@ -146,10 +146,12 @@ Setting up Tensorflow for data parallel work
     if args.job_name == "worker":
         server = tf.train.Server(cluster, job_name="worker", task_index=args.task,
                                  config=tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=2))
+
         run(args, server)
     else:
+        FLAGS = tf.app.flags.FLAGS
         server = tf.train.Server(cluster, job_name="ps", task_index=args.task,
-                                 config=tf.ConfigProto(device_filters=["/job:ps"]))
+                                   config=tf.ConfigProto(device_filters=["/job:ps"]))
         while True:
             time.sleep(1000)
 
