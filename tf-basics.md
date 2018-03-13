@@ -1,13 +1,21 @@
 ### Basic tensorflow functions and commands
 
 #### 1. Array operations
+- [__`tf.multinomial( logits, num_samples )`__](https://www.tensorflow.org/api_docs/python/tf/multinomial):
+   - __`logits`__: 2-D Tensor with shape [batch_size, num_classes]. Each slice [i, :] represents the unnormalized log-probabilities for all classes.
+   - __`num_samples`__: 0-D. Number of independent samples to draw for each row slice.
+```buildoutcfg
+    # samples has shape [1, 5], where each value is either 0 or 1 with equal
+    # probability.
+    samples = tf.multinomial(tf.log([[10., 10.]]), 5)
+```
 
 
-- [`tf.to_float()`]()
+- [__`tf.to_float()`__]()
 
-- [`tf.shape()`](https://www.tensorflow.org/api_docs/python/tf/shape) this is the op to get the shape of a tensor.
+- [__`tf.shape()`__](https://www.tensorflow.org/api_docs/python/tf/shape) this is the op to get the shape of a tensor.
 
-- [`tf.reduce_mean(input_tensor, axis)`](https://www.tensorflow.org/api_docs/python/tf/reduce_mean): axis ranges from -rank(input_tensor) to rank(input_tensor). 
+- [__`tf.reduce_mean(input_tensor, axis)`__](https://www.tensorflow.org/api_docs/python/tf/reduce_mean): axis ranges from -rank(input_tensor) to rank(input_tensor). 
 __e.g.__ axis = 0, 1, 2 correspond to outer most bracket dimension, the second outer most bracket dimension, etc.  
 ```buildoutcfg
     x = tf.constant([[1., 1.], [2., 2.]])
@@ -26,7 +34,7 @@ __e.g.__ axis = 0, 1, 2 correspond to outer most bracket dimension, the second o
 
 ```
 
-- [`tf.reduce_sum`](https://www.tensorflow.org/api_docs/python/tf/reduce_sum): __e.g.__
+- [__`tf.reduce_sum`__](https://www.tensorflow.org/api_docs/python/tf/reduce_sum): __e.g.__
 ```buildoutcfg
     x = tf.constant([[1, 1, 1], [1, 1, 1]])
     tf.reduce_sum(x)  # 6
@@ -36,7 +44,7 @@ __e.g.__ axis = 0, 1, 2 correspond to outer most bracket dimension, the second o
     tf.reduce_sum(x, [0, 1])  # 6
 ```
 
-- [`tf.reshape`](https://www.tensorflow.org/api_docs/python/tf/reshape): __e.g.__ 
+- [__`tf.reshape`__](https://www.tensorflow.org/api_docs/python/tf/reshape): __e.g.__ 
 MNIST data input is a 1-D vector of 784 features (28*28 pixels). 
 Reshape to match picture format [Height x Width x Channel]. Tensor input become 4-D: [Batch Size, Height, Width, Channel]
 
