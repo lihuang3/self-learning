@@ -1,4 +1,9 @@
 ## Tensorflow Learning Notebook
+#### 3. Freeze Some of the Weights
+To train some of the weights and freeze other weights in the graph, filter the variables to a particular scope. Refer to
+https://stackoverflow.com/a/35304001
+
+
 
 #### 2. Copy Parameters
 - Copy weights from nn2 to nn1 (version 1)
